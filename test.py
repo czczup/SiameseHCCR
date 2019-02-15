@@ -15,28 +15,31 @@ class Character:
         self.feature = feature
 
 
-def test(siamese, sess, dataset):
+def test(siamese, sess, dataset, train_time, debug=False):
     path = "database/" + dataset
     template_list = []
-    load_file = np.load("file/numpy/vector.npy")
     for i, dir in enumerate(os.listdir(path)):
-        template = Character(dir, load_file[i])
+        image = cv2.imread("database/train/"+dir+"/0.png", cv2.IMREAD_GRAYSCALE)
+        image = image.reshape([32, 32, 1]) / 255.0
+        feature = sess.run(siamese.left_output, feed_dict={siamese.left: [image], siamese.training: False})[0]
+        template = Character(dir, feature)
         template_list.append(template)
     template_feature_list = [template.feature for template in template_list]
     print("字符模板加载完成")
     print("字符模板总数为%d"%len(template_list))
 
-    f = open("results.csv", "w+", encoding='utf-8')
+    f = open("file/results/"+dataset+"/result%d.csv"%train_time, "w+", encoding='utf-8')
     range_len = range(len(template_list))
 
     top1, top5, top10, size = 0, 0, 0, 0
     for index, dir in enumerate(os.listdir(path)):
         # 载入匹配模板
         files = []
-        for file in os.listdir(path+"/"+dir):  # 加载文件夹中的所有图像
+        for count, file in enumerate(os.listdir(path+"/"+dir)):  # 加载文件夹中的所有图像
             image = cv2.imread(path+"/"+dir+"/"+file, cv2.IMREAD_GRAYSCALE)
             image = image.reshape([32, 32, 1]) / 255.0
             files.append(image)
+            if debug: break
 
         # 提取图像特征
         features = sess.run(siamese.left_output, feed_dict={siamese.left: files, siamese.training: False})
@@ -44,9 +47,9 @@ def test(siamese, sess, dataset):
         # 相似度网络计算样本对相似度
         predictions = []
         for feature in features:
-            prediction = sess.run(y_, feed_dict={image_feature: [feature],
-                                                   template_feature: template_feature_list,
-                                                   siamese.training: False})
+            prediction = sess.run(siamese.test_y_hat, feed_dict={siamese.image_feature: [feature],
+                                                                    siamese.template_feature: template_feature_list,
+                                                                    siamese.training: False})
             predictions.append(prediction)
 
         # 找出相似度最大的11个汉字
@@ -91,6 +94,7 @@ def test(siamese, sess, dataset):
         f.write(str(top1/size))
         f.write(","+str(top5/size))
         f.write(","+str(top10/size)+"\n")
+        f.close()
 
 
 if __name__ == '__main__':
@@ -110,13 +114,5 @@ if __name__ == '__main__':
             last_file = tf.train.latest_checkpoint("file/models/")
             print('Restoring model from {}'.format(last_file))
             saver.restore(sess, last_file)
-
-            template_feature = tf.placeholder(tf.float32, [None, 256], name="template_feature")
-            image_feature = tf.placeholder(tf.float32, [None, 256], name="image_feature")
-            image_feature = tf.tile(image_feature, multiples=[3755, 1])
-            output_difference = tf.abs(image_feature-template_feature)
-            wx_plus_b = tf.matmul(output_difference, siamese.test_param[0])+siamese.test_param[1]
-            y_ = tf.nn.sigmoid(wx_plus_b, name='distance')
-
     test(siamese, sess, dataset="test")
 

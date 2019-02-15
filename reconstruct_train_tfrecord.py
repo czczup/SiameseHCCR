@@ -22,12 +22,21 @@ counts = [item[1] for item in value2]
 char2count = dict(zip(chars, counts))
 
 
-def get_data(sample_sum):
+def load_result(filename):
+    table = pd.read_csv("file/results/train/"+filename, header=None)
+    error_top10 = []
+    for item in table.values[:-1]:
+        error_top10.append([item[0], item[1]])
+    return error_top10
+
+
+def get_data(sample_sum, train_time):
     data = []
+    error_top10 = load_result("result%d.csv"%train_time)
     for i in range(sample_sum):
         item = get_positive_pair()
         data.append(item)
-        item = get_negative_pair()
+        item = get_negative_pair(error_top10)
         data.append(item)
         sys.stdout.write('\r>> Loading sample pairs %d/%d' % (i + 1, sample_sum))
         sys.stdout.flush()
@@ -52,13 +61,16 @@ def get_positive_pair():  # 获取正样本对
     return image1, image2, 1
 
 
-def get_negative_pair():  # 获取负样本对
-    id1, id2 = get_different_randint(0, 3755)  # 随机产生汉字的编号
-    index1 = np.random.randint(0, char2count[id2char[id1]])  # 随机产生汉字的编号
-    index2 = np.random.randint(0, char2count[id2char[id2]])  # 随机产生汉字的编号
-    path1 = "database/train/" + id2char[id1] + "/" + str(index1) + ".png"
+def get_negative_pair(error_top10):  # 获取负样本对
+    rand1 = np.random.randint(0, 3755)  # 随机产生汉字的编号
+    rand2 = np.random.randint(0, 10)
+    char1 = error_top10[rand1][0]
+    char2 = error_top10[rand1][1][rand2]
+    index1 = np.random.randint(0, char2count[char1])  # 随机产生汉字的编号
+    index2 = np.random.randint(0, char2count[char2])  # 随机产生汉字的编号
+    path1 = "database/train/" + char1 + "/" + str(index1) + ".png"
     image1 = cv2.imread(path1, cv2.IMREAD_GRAYSCALE)
-    path2 = "database/train/" + id2char[id2] + "/" + str(index2) + ".png"
+    path2 = "database/train/" + char2 + "/" + str(index2) + ".png"
     image2 = cv2.imread(path2, cv2.IMREAD_GRAYSCALE)
     return image1, image2, 0
 
@@ -97,9 +109,8 @@ def _convert_dataset(data, tfrecord_path, filename):
     sys.stdout.write('\n')
     sys.stdout.flush()
 
-def generate_train_tfrecord(time, sample_sum):
-    data = get_data(sample_sum=sample_sum)
+def reconstruct_train_tfrecord(train_time, sample_sum):
+    data = get_data(sample_sum=sample_sum, train_time=train_time)
     random.seed(0)
     random.shuffle(data)
-    _convert_dataset(data, "file/tfrecord/", "train%d.tfrecord"%time)
-
+    _convert_dataset(data, "file/tfrecord/", "train%d.tfrecord"%(train_time+1))

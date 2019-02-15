@@ -30,46 +30,10 @@ class Siamese(object):
             self.optimizer = tf.train.AdamOptimizer(self.learning_rate).minimize(self.loss, global_step=self.global_step)
         with tf.name_scope('accuracy'):
             self.accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-            self.merge_list.append(tf.summary.scalar('match-accuracy', self.accuracy))
+            self.merged = tf.summary.merge_all()
+        with tf.name_scope('test-network'):
+            self.test_network()
 
-            self.index = tf.placeholder(tf.int64, [None])
-            self.template_feature = tf.placeholder(tf.float32, [None, 256])  # 3755*256
-            self.test_accuracy = self.get_test_accuracy(self.index, self.template_feature)
-            self.merge_test_list = []
-            for item in self.test_accuracy:
-                self.merge_test_list.append(tf.summary.scalar(item[1], item[0]))
-        self.merged = tf.summary.merge(self.merge_list)
-        self.merged_test = tf.summary.merge(self.merge_test_list)
-
-    def get_test_accuracy(self, index, template_feature):
-        extracted_feature = tf.reshape(self.left_output, [-1, 1, 256])
-        extracted_feature = tf.tile(extracted_feature, [1, 3755, 1])
-        template_feature = tf.reshape(template_feature, [-1, 3755, 256])
-        template_feature = tf.tile(template_feature, [256, 1, 1])
-        output_difference = tf.abs(extracted_feature - template_feature)
-        output_difference = tf.reshape(output_difference, [-1, 256])
-        wx_plus_b = tf.matmul(output_difference, self.test_param[0]) + self.test_param[1]
-        y_hat = tf.nn.sigmoid(wx_plus_b)
-        y_hat = tf.reshape(y_hat, [-1, 3755])
-        self.y_hat = y_hat
-        """
-        predictions: A `Tensor` of type `float32`.
-          A `batch_size` x `classes` tensor.
-        targets: A `Tensor`. Must be one of the following types: `int32`, `int64`.
-          A `batch_size` vector of class ids.
-        """
-        top10_prediction = tf.nn.in_top_k(y_hat, index, k=10)
-        top5_prediction = tf.nn.in_top_k(y_hat, index, k=5)
-        top2_prediction = tf.nn.in_top_k(y_hat, index, k=2)
-        top1_prediction = tf.nn.in_top_k(y_hat, index, k=1)
-        top10_accuracy = tf.reduce_mean(tf.cast(top10_prediction, tf.float32))
-        top5_accuracy = tf.reduce_mean(tf.cast(top5_prediction, tf.float32))
-        top2_accuracy = tf.reduce_mean(tf.cast(top2_prediction, tf.float32))
-        top1_accuracy = tf.reduce_mean(tf.cast(top1_prediction, tf.float32))
-        return [[top10_accuracy, "top10-accuracy-test"],
-                [top5_accuracy, "top5-accuracy-test"],
-                [top2_accuracy, "top2-accuracy-test"],
-                [top1_accuracy, "top1-accuracy-test"]]
 
     def conv2d(self, x, output_filters, kernel, strides=1, padding="SAME"):
         conv = tf.contrib.layers.conv2d(x, output_filters, [kernel, kernel], activation_fn=tf.nn.relu, padding=padding,
@@ -147,6 +111,13 @@ class Siamese(object):
             num_params += reduce(mul, [dim.value for dim in shape], 1)
         return num_params
 
+    def test_network(self):
+        self.template_feature = tf.placeholder(tf.float32, [None, 256])
+        self.image_feature = tf.placeholder(tf.float32, [None, 256])
+        image_feature = tf.tile(self.image_feature, multiples=[3755, 1])
+        output_difference = tf.abs(image_feature-self.template_feature)
+        wx_plus_b = tf.matmul(output_difference, self.test_param[0])+self.test_param[1]
+        self.test_y_hat = tf.nn.sigmoid(wx_plus_b, name='distance')
 
 if __name__ == '__main__':
     model = Siamese()
