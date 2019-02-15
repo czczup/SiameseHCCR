@@ -10,8 +10,7 @@ import pandas as pd
 
 
 class Character:
-    def __init__(self, image, label, feature=None):
-        self.image = image.reshape([32, 32, 1])/255.0
+    def __init__(self, label, feature=None):
         self.label = label
         self.feature = feature
 
@@ -19,95 +18,79 @@ class Character:
 def test(siamese, sess, dataset):
     path = "database/" + dataset
     template_list = []
-    for dir in os.listdir(path):
-        image = cv2.imread(path+"/"+dir+"/0.png", cv2.IMREAD_GRAYSCALE)
-        feature = sess.run(siamese.right_output, feed_dict={siamese.right: [image.reshape([32, 32, 1]) / 255.0],
-                                                                  siamese.training: False})[0]
-        template = Character(image, dir, feature)
+    load_file = np.load("file/numpy/vector.npy")
+    for i, dir in enumerate(os.listdir(path)):
+        template = Character(dir, load_file[i])
         template_list.append(template)
     template_feature_list = [template.feature for template in template_list]
     print("字符模板加载完成")
     print("字符模板总数为%d"%len(template_list))
 
-    f = open("results.csv", "w+")
+    f = open("results.csv", "w+", encoding='utf-8')
     range_len = range(len(template_list))
 
-    top1 = 0
-    top5 = 0
-    top10 = 0
-    size = 0
+    top1, top5, top10, size = 0, 0, 0, 0
     for index, dir in enumerate(os.listdir(path)):
-        time1 = time.time()
+        # 载入匹配模板
         files = []
-        for file in os.listdir(path+"/"+dir):
+        for file in os.listdir(path+"/"+dir):  # 加载文件夹中的所有图像
             image = cv2.imread(path+"/"+dir+"/"+file, cv2.IMREAD_GRAYSCALE)
             image = image.reshape([32, 32, 1]) / 255.0
             files.append(image)
-        print("载入数据用时:", "%.2f"%(time.time()-time1)+"s")
-        time1 = time.time()
+
+        # 提取图像特征
         features = sess.run(siamese.left_output, feed_dict={siamese.left: files, siamese.training: False})
-        print("提取特征用时:", "%.2f"%(time.time()-time1)+"s")
-        time1 = time.time()
-        pred_characters = []
-        # np.tile(feature, (len(template_list), 1))
+
+        # 相似度网络计算样本对相似度
         predictions = []
         for feature in features:
             prediction = sess.run(y_, feed_dict={image_feature: [feature],
                                                    template_feature: template_feature_list,
                                                    siamese.training: False})
             predictions.append(prediction)
-        print("处理特征用时:", "%.2f"%(time.time()-time1)+"s")
-        time1 = time.time()
 
+        # 找出相似度最大的11个汉字
+        pred_characters = []
         for prediction in predictions:
             max_list = heapq.nlargest(11, range_len, prediction.take)
             pred_character = [template_list[item].label for item in max_list]
             pred_characters.append(pred_character)
-        print("取最大值用时:", "%.2f"%(time.time()-time1)+"s")
-        time1 = time.time()
 
-        count_top1 = 0
-        count_top5 = 0
-        count_top10 = 0
+        # 统计正确率
+        count_top1, count_top5, count_top10 = 0, 0, 0
         length = len(pred_characters)
         count_dic = {}
-        for index, item in enumerate(pred_characters):
-            if dir==item[0]:
+        for item in pred_characters:
+            if dir==item[0]:  # 统计top1正确率
                 count_top1 += 1
                 top1 += 1
-            if dir in item[0:5]:
+            if dir in item[0:5]:  # 统计top5正确率
                 count_top5 += 1
                 top5 += 1
-            if dir in item[0:10]:
+            if dir in item[0:10]:  # 统计top10正确率
                 count_top10 += 1
                 top10 += 1
             size += 1
             temp = list(item)
-            if dir in temp:
+            if dir in temp:  # 输出top10错误汉字列表
                 temp.remove(dir)
-            for ch in temp[0:10]:
+            for ch in temp[0:10]:  # 统计汉字的出错次数
                 if ch in count_dic:
                     count_dic[ch] += 1
                 else:
                     count_dic[ch] = 1
         else:
-            ch_list = sorted(count_dic, key=lambda x:-count_dic[x])[:10]
+            ch_list = sorted(count_dic, key=lambda x:-count_dic[x])[:10]  # 找出出错次数最多的10个汉字
             f.write(dir+","+"".join(ch_list))
             f.write(","+str(count_top1/length))
             f.write(","+str(count_top5/length))
             f.write(","+str(count_top10/length)+"\n")
-            print(dir, ch_list)
-        print("统计用时:", "%.2f"%(time.time()-time1)+"s")
-        print("top1 acc:", count_top1/length)
-        print("top5 acc:", count_top5/length)
-        print("top10 acc:", count_top10/length)
-        print("Using time:", "%.2f" % (time.time() - time1) + "s")
+        sys.stdout.write('\r>> Test image %d/%d'%(index+1, 3755))
+        sys.stdout.flush()
     else:
         f.write(str(top1/size))
         f.write(","+str(top5/size))
         f.write(","+str(top10/size)+"\n")
-
-
 
 
 if __name__ == '__main__':
