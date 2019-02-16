@@ -12,17 +12,16 @@ class Siamese(object):
             self.label = tf.to_float(label)
         self.training = tf.placeholder(tf.bool)
         self.global_step = tf.Variable(0, name="global_step", trainable=False)
-        self.merge_list = []
         with tf.variable_scope("Siamese") as scope:
             self.left_output = self.model(self.left)
             scope.reuse_variables()
             self.right_output = self.model(self.right)
         self.prediction, self.loss, self.test_param = self.contrastive_loss(self.left_output, self.right_output, self.label)
-        self.merge_list.append(tf.summary.scalar('loss', self.loss))
+        tf.summary.scalar('loss', self.loss)
         self.batch_size = 512
         self.learning_rate = tf.train.exponential_decay(1e-4, self.global_step, decay_steps=3E6//self.batch_size,
                                                         decay_rate=0.99, staircase=True)
-        self.merge_list.append(tf.summary.scalar('learning_rate', self.learning_rate))
+        tf.summary.scalar('learning_rate', self.learning_rate)
         with tf.name_scope('correct_prediction'):
             correct_prediction = tf.equal(tf.less(self.prediction, 0.5), tf.less(self.label, 0.5))
         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
@@ -30,6 +29,7 @@ class Siamese(object):
             self.optimizer = tf.train.AdamOptimizer(self.learning_rate).minimize(self.loss, global_step=self.global_step)
         with tf.name_scope('accuracy'):
             self.accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+            tf.summary.scalar('matching-accuracy', self.accuracy)
             self.merged = tf.summary.merge_all()
         with tf.name_scope('test-network'):
             self.test_network()

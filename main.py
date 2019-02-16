@@ -27,12 +27,6 @@ def init_model():
             writer = tf.summary.FileWriter("file/logs/train", sess.graph)
     return sess, saver, siamese, writer
 
-def reset_graph(sess):
-    tf.reset_default_graph()
-    with sess.graph.as_default():
-        with sess.as_default():
-            siamese = Siamese()
-    return siamese
 
 def main():
     train_time = 0
