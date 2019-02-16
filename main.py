@@ -31,7 +31,8 @@ def init_model():
 def main():
     train_time = 0
     debug = False
-    generate_train_tfrecord(train_time, sample_sum=1500000)  # 生成第0个tfrecord
+    if not os.path.exists("file/tfrecord/train0.tfrecord"):
+        generate_train_tfrecord(train_time, sample_sum=1500000)  # 生成第0个tfrecord
     while True:  # 无限循环
         sess, saver, siamese, writer = init_model()
         train(sess, saver, siamese, writer, train_time, debug=debug)  # 训练一定批次

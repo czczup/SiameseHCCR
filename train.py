@@ -51,14 +51,17 @@ def read_mapping():
 
 def train(sess, saver, siamese, writer, train_time, debug=False):
     BATCH_SIZE = 512
-    DATA_SUM = 3E6 if not debug else 10000
+    DATA_SUM = 3000000 if not debug else 10000
     image_batch_train1, image_batch_train2, label_batch_train = load_training_set(train_time)
-    EPOCH = 80 if train_time == 0 else 10
+    EPOCH = 20 if train_time == 0 else 5
     EPOCH = EPOCH if not debug else 1
     coord = tf.train.Coordinator()
     threads = tf.train.start_queue_runners(sess=sess, coord=coord)
-    for epoch in range(EPOCH):
-        for step in range(int(DATA_SUM)//BATCH_SIZE):
+    step_ = sess.run(siamese.global_step)
+    epoch_start = step_ // (DATA_SUM// BATCH_SIZE)
+    step_start = step_ % DATA_SUM // BATCH_SIZE
+    for epoch in range(epoch_start, EPOCH):
+        for step in range(step_start, DATA_SUM//BATCH_SIZE):
             time1 = time.time()
             image_train1, image_train2, label_train, step_ = sess.run(
                 [image_batch_train1, image_batch_train2, label_batch_train, siamese.global_step])
@@ -69,7 +72,7 @@ def train(sess, saver, siamese, writer, train_time, debug=False):
             print('[train %d, epoch %d, step %d/%d]: loss %.6f' % (train_time, epoch, step,
                                                                    int(DATA_SUM)//BATCH_SIZE, loss_),
                   'time %.3fs' % (time.time() - time1))
-            if step % 10 == 0:
+            if step_ % 10 == 0:
                 image_train1, image_train2, label_train = sess.run(
                     [image_batch_train1, image_batch_train2, label_batch_train])
                 acc_train, summary = sess.run([siamese.accuracy, siamese.merged], feed_dict={siamese.left: image_train1,
@@ -81,9 +84,12 @@ def train(sess, saver, siamese, writer, train_time, debug=False):
                                                                             int(DATA_SUM)//BATCH_SIZE, acc_train),
                       'time %.3fs' % (time.time() - time1))
 
-            if step % 500 == 0:
+            if step_ % 500 == 0:
                 print("Save the model Successfully")
                 saver.save(sess, "file/models/model.ckpt", global_step=step_)
+    else:
+        print("Save the model Successfully")
+        saver.save(sess, "file/models/model.ckpt", global_step=step_)
 
     coord.request_stop()
     coord.join(threads)
