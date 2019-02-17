@@ -34,12 +34,16 @@ def main():
     if not os.path.exists("file/tfrecord/train0.tfrecord"):
         generate_train_tfrecord(train_time, sample_sum=1500000)  # 生成第0个tfrecord
     while True:  # 无限循环
-        sess, saver, siamese, writer = init_model()
-        train(sess, saver, siamese, writer, train_time, debug=debug)  # 训练一定批次
-        test(siamese, sess, dataset="train", train_time=train_time, debug=debug)  # 用训练集测试
-        test(siamese, sess, dataset="test", train_time=train_time, debug=debug)  # 用测试集测试
-        reconstruct_train_tfrecord(train_time, sample_sum=1500000)  # 重构训练集
-        tf.reset_default_graph()
+        sess, saver, siamese, writer = init_model()  # 每轮训练完成后，重新初始化计算图
+        if not os.path.exists("file/results/log/train%d.log"%train_time):
+            train(sess, saver, siamese, writer, train_time, debug=debug)  # 训练一定批次
+        if not os.path.exists("file/results/train/result%d.csv"%train_time):
+            test(siamese, sess, dataset="train", train_time=train_time, debug=debug)  # 用训练集测试
+        if not os.path.exists("file/results/test/result%d.csv"%train_time):
+            test(siamese, sess, dataset="test", train_time=train_time, debug=debug)  # 用测试集测试
+        if not os.path.exists("file/tfrecord/train%d.tfrecord"%(train_time+1)):
+            reconstruct_train_tfrecord(train_time, sample_sum=1500000)  # 重构训练集
+        tf.reset_default_graph()  # 清空计算图
         train_time += 1
 
 

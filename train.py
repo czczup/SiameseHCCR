@@ -55,11 +55,18 @@ def train(sess, saver, siamese, writer, train_time, debug=False):
     image_batch_train1, image_batch_train2, label_batch_train = load_training_set(train_time)
     EPOCH = 20 if train_time == 0 else 5
     EPOCH = EPOCH if not debug else 1
+
+    step_ = sess.run(siamese.global_step)
+    if train_time > 0 and not debug:
+        step_ = step_ - 20 * (DATA_SUM // BATCH_SIZE) - (train_time-1) * 5 * (DATA_SUM // BATCH_SIZE)
+    elif train_time > 0 and debug:
+        step_ = step_ - train_time * (DATA_SUM // BATCH_SIZE)
+
+    epoch_start = step_ // (DATA_SUM // BATCH_SIZE)
+    step_start = step_ % DATA_SUM // BATCH_SIZE
+
     coord = tf.train.Coordinator()
     threads = tf.train.start_queue_runners(sess=sess, coord=coord)
-    step_ = sess.run(siamese.global_step)
-    epoch_start = step_ // (DATA_SUM// BATCH_SIZE)
-    step_start = step_ % DATA_SUM // BATCH_SIZE
     for epoch in range(epoch_start, EPOCH):
         for step in range(step_start, DATA_SUM//BATCH_SIZE):
             time1 = time.time()
@@ -90,6 +97,8 @@ def train(sess, saver, siamese, writer, train_time, debug=False):
     else:
         print("Save the model Successfully")
         saver.save(sess, "file/models/model.ckpt", global_step=step_)
+        f = open("file/results/log/train%d.log"%train_time, "w+")
+        f.close()
 
     coord.request_stop()
     coord.join(threads)
