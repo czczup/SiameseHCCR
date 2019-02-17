@@ -35,7 +35,7 @@ python main.py
 ```
 
 ## 3. 项目结构树
-
+```
 │  generate_test_data.py  # 生成测试数据，用于将gnt转为png，只执行1次
 │  generate_train_data.py  # 生成训练数据，用于将gnt转为png，只执行1次
 │  generate_test_tfrecord.py  # 生成测试集tfrecord，目前没有用
@@ -62,3 +62,4 @@ python main.py
 ​     ├─train  # 存放由CASIA-HWDB1.0-1.1数据集生成的png文件
 ​     │  gb2312_level1.csv  # 对gb2312-80的一级常用汉字进行编号
 ​     |   count.csv  # 记录训练集中每一类的样本数
+```
