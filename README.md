@@ -14,7 +14,7 @@ pandas
 
 运行本项目请以此执行以下步骤：
 
-### 1.数据集部署
+### 2.1 数据集部署
 
 - 将CASIA-Competition数据集中的所有gnt文件放置于`database/competition/`
 - 将CASIA-HWDB1.0数据集中的所有gnt文件放置于`database/HWDB1.0`
@@ -26,12 +26,20 @@ python generate_test_data.py  #测试集将gnt转为png，存放于database/test
 python generate_train_data.py  #训练集集将gnt转为png，存放于database/train
 ```
 
-### 2.开始训练
+### 2.2 开始训练
 
-- 运行如下代码，自动完成tfrecord生成、模型训练、测试、数据集重构
+- 运行如下命令，自动完成tfrecord生成、模型训练、测试、数据集重构
 
 ```python
 python main.py
+```
+
+### 2.3 查看训练日志
+
+- 运行如下命令
+
+```sh
+tensorboard --logdir=file/logs
 ```
 
 ## 3. 项目结构树
@@ -50,9 +58,12 @@ python main.py
 │
 └─file # 存放训练生成的文件
 │   └─results
-│       ├─train  # 存放训练集准确率文件
-│       ├─test  # 存放测试集准确率文件
-│       └─log  # 存放训练日志，只是空文件，标志训练进行的阶段，用于断点续训
+│   │   ├─train  # 存放训练集准确率文件
+│   │   ├─test  # 存放测试集准确率文件
+│   │   └─log  # 存放训练日志，只是空文件，标志训练进行的阶段，用于断点续训
+│   ├─tfrecord  # 存放生成的tfrecord
+│   ├─logs  # 存放tensorboard训练日志
+│   └─models  # 存放保存的ckpt模型
 │
 └─database  # 存放训练数据
 ​     ├─competition  # 存放CASIA-Competition数据集的gnt文件
