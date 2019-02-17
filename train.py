@@ -53,14 +53,11 @@ def train(sess, saver, siamese, writer, train_time, debug=False):
     BATCH_SIZE = 512
     DATA_SUM = 3000000 if not debug else 10000
     image_batch_train1, image_batch_train2, label_batch_train = load_training_set(train_time)
-    EPOCH = 20 if train_time == 0 else 5
-    EPOCH = EPOCH if not debug else 1
+    EPOCH = 20 if not debug else 1
 
     step_ = sess.run(siamese.global_step)
-    if train_time > 0 and not debug:
-        step_ = step_ - 20 * (DATA_SUM // BATCH_SIZE) - (train_time-1) * 5 * (DATA_SUM // BATCH_SIZE)
-    elif train_time > 0 and debug:
-        step_ = step_ - train_time * (DATA_SUM // BATCH_SIZE)
+    if train_time > 0:
+        step_ = step_ - train_time * EPOCH * (DATA_SUM // BATCH_SIZE)
 
     epoch_start = step_ // (DATA_SUM // BATCH_SIZE)
     step_start = step_ % DATA_SUM // BATCH_SIZE
