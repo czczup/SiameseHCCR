@@ -72,5 +72,5 @@ tensorboard --logdir=file/logs
 ​     ├─test  # 存放由CASIA-Competition数据集生成的png文件
 ​     ├─train  # 存放由CASIA-HWDB1.0-1.1数据集生成的png文件
 ​     │  gb2312_level1.csv  # 对gb2312-80的一级常用汉字进行编号
-​     |   count.csv  # 记录训练集中每一类的样本数
+​     |  count.csv  # 记录训练集中每一类的样本数
 ```

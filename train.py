@@ -52,7 +52,7 @@ def read_mapping():
 def train(sess, saver, siamese, writer, train_time, debug=False):
     BATCH_SIZE = 512
     DATA_SUM = 3000000 if not debug else 10000
-    EPOCH = 20 if not debug else 1
+    EPOCH = 30 if not debug else 1
 
     step_ = sess.run(siamese.global_step)
     if train_time > 0:
@@ -61,9 +61,9 @@ def train(sess, saver, siamese, writer, train_time, debug=False):
     epoch_start = step_ // (DATA_SUM // BATCH_SIZE)
     step_start = step_ % DATA_SUM // BATCH_SIZE
 
+    image_batch_train1, image_batch_train2, label_batch_train = load_training_set(train_time)
     coord = tf.train.Coordinator()
     threads = tf.train.start_queue_runners(sess=sess, coord=coord)
-    image_batch_train1, image_batch_train2, label_batch_train = load_training_set(train_time)
 
     for epoch in range(epoch_start, EPOCH):
         for step in range(step_start, DATA_SUM//BATCH_SIZE):
