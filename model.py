@@ -20,7 +20,7 @@ class Siamese(object):
         tf.summary.scalar('loss', self.loss)
         self.batch_size = 512
         self.learning_rate = tf.train.exponential_decay(1e-4, self.global_step, decay_steps=3E6//self.batch_size,
-                                                        decay_rate=0.99, staircase=True)
+                                                        decay_rate=0.999, staircase=True)
         tf.summary.scalar('learning_rate', self.learning_rate)
         with tf.name_scope('correct_prediction'):
             correct_prediction = tf.equal(tf.less(self.prediction, 0.5), tf.less(self.label, 0.5))
