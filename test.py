@@ -27,7 +27,10 @@ def test(siamese, sess, dataset, train_time, debug=False, trainId=None):
     template_feature_list = [template.feature for template in template_list]
     print("字符模板加载完成")
     print("字符模板总数为%d"%len(template_list))
-
+    if not os.path.exists("file/"+trainId+"/results/train"):
+        os.mkdir("file/"+trainId+"/results/train")
+    if not os.path.exists("file/"+trainId+"/results/test"):
+        os.mkdir("file/"+trainId+"/results/test")
     f = open("file/"+trainId+"/results/"+dataset+"/result%d.csv"%train_time, "w+", encoding='utf-8')
     range_len = range(len(template_list))
 
