@@ -30,9 +30,9 @@ def read_and_decode_train(filename):
     return image1, image2, label
 
 
-def load_training_set(train_time):
+def load_training_set(train_time, trainId):
     with tf.name_scope('input_train'):
-        image_train1, image_train2, label_train = read_and_decode_train("file/tfrecord/train%d.tfrecord"%train_time)
+        image_train1, image_train2, label_train = read_and_decode_train("file/"+trainId+"/tfrecord/train%d.tfrecord"%train_time)
         image_batch_train1, image_batch_train2, label_batch_train = tf.train.shuffle_batch(
             [image_train1, image_train2, label_train], batch_size=512, capacity=4096, min_after_dequeue=2048
         )
@@ -49,7 +49,7 @@ def read_mapping():
     return id2char, char2id
 
 
-def train(sess, saver, siamese, writer, train_time, debug=False):
+def train(sess, saver, siamese, writer, train_time, debug=False, trainId=None):
     BATCH_SIZE = 512
     DATA_SUM = 3000000 if not debug else 10000
     EPOCH = 30 if not debug else 1
@@ -61,7 +61,7 @@ def train(sess, saver, siamese, writer, train_time, debug=False):
     epoch_start = step_ // (DATA_SUM // BATCH_SIZE)
     step_start = step_ % DATA_SUM // BATCH_SIZE
 
-    image_batch_train1, image_batch_train2, label_batch_train = load_training_set(train_time)
+    image_batch_train1, image_batch_train2, label_batch_train = load_training_set(train_time, trainId)
     coord = tf.train.Coordinator()
     threads = tf.train.start_queue_runners(sess=sess, coord=coord)
 
@@ -91,11 +91,11 @@ def train(sess, saver, siamese, writer, train_time, debug=False):
 
             if step_ % 500 == 0:
                 print("Save the model Successfully")
-                saver.save(sess, "file/models/model.ckpt", global_step=step_)
+                saver.save(sess, "file/"+trainId+"/models/model.ckpt", global_step=step_)
     else:
         print("Save the model Successfully")
-        saver.save(sess, "file/models/model.ckpt", global_step=step_)
-        f = open("file/results/log/train%d.log"%train_time, "w+")
+        saver.save(sess, "file/"+trainId+"/models/model.ckpt", global_step=step_)
+        f = open("file/"+trainId+"/results/log/train%d.log"%train_time, "w+")
         f.close()
 
     coord.request_stop()

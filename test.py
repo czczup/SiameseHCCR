@@ -15,7 +15,7 @@ class Character:
         self.feature = feature
 
 
-def test(siamese, sess, dataset, train_time, debug=False):
+def test(siamese, sess, dataset, train_time, debug=False, trainId=None):
     path = "database/" + dataset
     template_list = []
     for i, dir in enumerate(os.listdir(path)):
@@ -28,18 +28,19 @@ def test(siamese, sess, dataset, train_time, debug=False):
     print("字符模板加载完成")
     print("字符模板总数为%d"%len(template_list))
 
-    f = open("file/results/"+dataset+"/result%d.csv"%train_time, "w+", encoding='utf-8')
+    f = open("file/"+trainId+"/results/"+dataset+"/result%d.csv"%train_time, "w+", encoding='utf-8')
     range_len = range(len(template_list))
 
     top1, top5, top10, size = 0, 0, 0, 0
     for index, dir in enumerate(os.listdir(path)):
-        # 载入匹配模板
+        # 载入图像
         files = []
         for count, file in enumerate(os.listdir(path+"/"+dir)):  # 加载文件夹中的所有图像
             image = cv2.imread(path+"/"+dir+"/"+file, cv2.IMREAD_GRAYSCALE)
             image = image.reshape([32, 32, 1]) / 255.0
             files.append(image)
             if debug: break
+            if dataset == "train" and count == 100: break
 
         # 提取图像特征
         features = sess.run(siamese.left_output, feed_dict={siamese.left: files, siamese.training: False})

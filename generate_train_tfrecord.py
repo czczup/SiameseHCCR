@@ -97,9 +97,9 @@ def _convert_dataset(data, tfrecord_path, filename):
     sys.stdout.write('\n')
     sys.stdout.flush()
 
-def generate_train_tfrecord(time, sample_sum):
+def generate_train_tfrecord(time, sample_sum, trainId):
     data = get_data(sample_sum=sample_sum)
     random.seed(0)
     random.shuffle(data)
-    _convert_dataset(data, "file/tfrecord/", "train%d.tfrecord"%time)
+    _convert_dataset(data, "file/tfrecord/"+trainId, "train%d.tfrecord"%time)
 

@@ -109,8 +109,8 @@ def _convert_dataset(data, tfrecord_path, filename):
     sys.stdout.write('\n')
     sys.stdout.flush()
 
-def reconstruct_train_tfrecord(train_time, sample_sum):
+def reconstruct_train_tfrecord(train_time, sample_sum, trainId):
     data = get_data(sample_sum=sample_sum, train_time=train_time)
     random.seed(0)
     random.shuffle(data)
-    _convert_dataset(data, "file/tfrecord/", "train%d.tfrecord"%(train_time+1))
+    _convert_dataset(data, "file/tfrecord/"+trainId, "train%d.tfrecord"%(train_time+1))
