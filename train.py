@@ -51,7 +51,7 @@ def read_mapping():
 
 def train(sess, saver, siamese, writer, train_time, debug=False, trainId=None):
     BATCH_SIZE = 512
-    DATA_SUM = 3000000 if not debug else 10000
+    DATA_SUM = 1000000 if not debug else 10000
     EPOCH = 30 if not debug else 1
 
     step_ = sess.run(siamese.global_step)

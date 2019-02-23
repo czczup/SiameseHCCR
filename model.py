@@ -19,8 +19,8 @@ class Siamese(object):
         self.prediction, self.loss, self.test_param = self.contrastive_loss(self.left_output, self.right_output, self.label)
         tf.summary.scalar('loss', self.loss)
         self.batch_size = 512
-        self.learning_rate = tf.train.exponential_decay(1e-4, self.global_step, decay_steps=3E6//self.batch_size,
-                                                        decay_rate=0.999, staircase=True)
+        self.learning_rate = tf.train.exponential_decay(1e-3, self.global_step, decay_steps=1E6//self.batch_size,
+                                                        decay_rate=0.995, staircase=True)
         tf.summary.scalar('learning_rate', self.learning_rate)
         with tf.name_scope('correct_prediction'):
             correct_prediction = tf.equal(tf.less(self.prediction, 0.5), tf.less(self.label, 0.5))
@@ -67,22 +67,26 @@ class Siamese(object):
             relu = tf.nn.relu(bn)
             pool = tf.nn.max_pool(relu, [1, 3, 3, 1], [1, 2, 2, 1], padding="SAME")
         with tf.variable_scope("block1") as scope:
-            res1 = self.residual(pool, [channel, channel//2, channel//2, channel*2], 3, 1, with_shortcut=True)
-            res2 = self.residual(res1, [channel*2, channel//2, channel//2, channel*2], 3, 1)
-            print(res2)
+            res = self.residual(pool, [channel, channel//2, channel//2, channel*2], 3, 1, with_shortcut=True)
+            res = self.residual(res, [channel*2, channel//2, channel//2, channel*2], 3, 1)
+            res = self.residual(res, [channel*2, channel//2, channel//2, channel*2], 3, 1)
+            print(res)
         with tf.variable_scope("block2") as scope:
-            res3 = self.residual(res2, [channel*2, channel, channel, channel*4], 3, 2, with_shortcut=True)
-            res4 = self.residual(res3, [channel*4, channel, channel, channel*4], 3, 1)
-            print(res4)
+            res = self.residual(res, [channel*2, channel, channel, channel*4], 3, 2, with_shortcut=True)
+            res = self.residual(res, [channel*4, channel, channel, channel*4], 3, 1)
+            res = self.residual(res, [channel*4, channel, channel, channel*4], 3, 1)
+            print(res)
         with tf.variable_scope("block3") as scope:
-            res5 = self.residual(res4, [channel*4, channel*2, channel*2, channel*8], 3, 2, with_shortcut=True)
-            res6 = self.residual(res5, [channel*8, channel*2, channel*2, channel*8], 3, 1)
-            print(res6)
+            res = self.residual(res, [channel*4, channel*2, channel*2, channel*8], 3, 2, with_shortcut=True)
+            res = self.residual(res, [channel*8, channel*2, channel*2, channel*8], 3, 1)
+            res = self.residual(res, [channel*8, channel*2, channel*2, channel*8], 3, 1)
+            print(res)
         with tf.variable_scope("block4") as scope:
-            res7 = self.residual(res6, [channel*8, channel*4, channel*4, channel*16], 3, 2, with_shortcut=True)
-            res8 = self.residual(res7, [channel*16, channel*4, channel*4, channel*16], 3, 1)
-            print(res8)
-            pool = tf.nn.avg_pool(res8, [1, 2, 2, 1], strides=[1, 1, 1, 1], padding='VALID')
+            res = self.residual(res, [channel*8, channel*4, channel*4, channel*16], 3, 2, with_shortcut=True)
+            res = self.residual(res, [channel*16, channel*4, channel*4, channel*16], 3, 1)
+            res = self.residual(res, [channel*16, channel*4, channel*4, channel*16], 3, 1)
+            print(res)
+            pool = tf.nn.avg_pool(res, [1, 2, 2, 1], strides=[1, 1, 1, 1], padding='VALID')
             flatten = tf.layers.flatten(pool)  # 2*2*1024=4096
             print(flatten)
         with tf.variable_scope("fc1") as scope:
@@ -125,4 +129,4 @@ if __name__ == '__main__':
     # for var in var_list:
     #     if "batch" not in var.name:
     #         print(var)
-    print([item[0] for item in model.test_accuracy])
+
