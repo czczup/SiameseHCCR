@@ -95,6 +95,8 @@ def train(sess, saver, siamese, writer, train_time, debug=False, trainId=None):
     else:
         print("Save the model Successfully")
         saver.save(sess, "file/"+trainId+"/models/model.ckpt", global_step=step_)
+        if not os.path.exists("file/"+trainId+"/results/log"):
+            os.makedirs("file/"+trainId+"/results/log")
         f = open("file/"+trainId+"/results/log/train%d.log"%train_time, "w+")
         f.close()
 
