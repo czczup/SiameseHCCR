@@ -10,7 +10,7 @@ def init_model(trainId):
     tf_config = tf.ConfigProto()
     tf_config.gpu_options.allow_growth = True
     sess = tf.Session(config=tf_config)
-    with sess.graph.as_default(), tf.device('/cpu:0'):
+    with sess.graph.as_default():
         with sess.as_default():
             siamese = Siamese()
             sess.run(tf.local_variables_initializer())
@@ -30,10 +30,6 @@ def init_model(trainId):
 
 def main(trainId, debug):
     train_time = 0
-    for i in range(100):
-        if not os.path.exists("file/" + trainId + "/tfrecord/train%d.tfrecord"%i):
-            train_time = i - 1
-            break
     sample_sum = 500000 if not debug else 10000
     if not os.path.exists("file/"+trainId):
         os.mkdir("file/"+trainId)

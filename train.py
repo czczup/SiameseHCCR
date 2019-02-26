@@ -70,7 +70,7 @@ def train(sess, saver, siamese, writer, train_time, debug=False, trainId=None):
             time1 = time.time()
             image_train1, image_train2, label_train, step_ = sess.run(
                 [image_batch_train1, image_batch_train2, label_batch_train, siamese.global_step])
-            _, loss_ = sess.run([siamese.train_op, siamese.loss], feed_dict={siamese.left: image_train1,
+            _, loss_ = sess.run([siamese.optimizer, siamese.loss], feed_dict={siamese.left: image_train1,
                                                                                  siamese.right: image_train2,
                                                                                  siamese.label: label_train,
                                                                                  siamese.training: True})

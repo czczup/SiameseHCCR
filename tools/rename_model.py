@@ -24,11 +24,6 @@ def main():
                 new_name = "Siamese/fc1/dense/kernel"
             if new_name == "Siamese/fc1/Variable_1":
                 new_name = "Siamese/fc1/dense/bias"
-            if new_name == "output/W":
-                new_name = "Siamese/output/dense/kernel"
-            if new_name == "output/b":
-                new_name = "Siamese/output/dense/bias"
-                var = tf.reshape(var, shape=[1])
             print(new_name)
             renamed_var = tf.Variable(var, name=new_name) #使用加入前缀的新名称重新构造了参数
             new_var_list.append(renamed_var) #把赋予新名称的参数加入空列表

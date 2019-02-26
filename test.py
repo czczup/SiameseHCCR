@@ -89,6 +89,8 @@ def test(siamese, sess, dataset, train_time, debug=False, trainId=None):
                     count_dic[ch] = 1
         else:
             ch_list = sorted(count_dic, key=lambda x:-count_dic[x])[:10]  # 找出出错次数最多的10个汉字
+            if index == 0:
+                print(count_dic)
             f.write(dir+","+"".join(ch_list))
             f.write(","+str(count_top1/length))
             f.write(","+str(count_top5/length))
