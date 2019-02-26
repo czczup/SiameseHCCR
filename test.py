@@ -56,6 +56,7 @@ def test(siamese, sess, dataset, train_time, debug=False, trainId=None):
                                                                     siamese.training: False})
             predictions.append(prediction)
 
+
         # 找出相似度最大的11个汉字
         pred_characters = []
         for prediction in predictions:
