@@ -50,7 +50,7 @@ def main(trainId, debug):
 
 
 if __name__ == '__main__':
-    # deviceId = input("please input device id (0-3): ")
-    # os.environ["CUDA_VISIBLE_DEVICES"] = deviceId
+    deviceId = input("please input device id (0-3): ")
+    os.environ["CUDA_VISIBLE_DEVICES"] = deviceId
     trainId = input("please input train id: ")
     main(trainId=trainId, debug=False)
