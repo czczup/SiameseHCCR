@@ -34,7 +34,7 @@ def load_training_set(train_time, trainId):
     with tf.name_scope('input_train'):
         image_train1, image_train2, label_train = read_and_decode_train("file/"+trainId+"/tfrecord/train%d.tfrecord"%train_time)
         image_batch_train1, image_batch_train2, label_batch_train = tf.train.shuffle_batch(
-            [image_train1, image_train2, label_train], batch_size=512, capacity=4096, min_after_dequeue=2048
+            [image_train1, image_train2, label_train], batch_size=512, capacity=20480, min_after_dequeue=10240
         )
     return image_batch_train1, image_batch_train2, label_batch_train
 
@@ -64,7 +64,7 @@ def train(sess, saver, siamese, writer, train_time, debug=False, trainId=None):
     image_batch_train1, image_batch_train2, label_batch_train = load_training_set(train_time, trainId)
     coord = tf.train.Coordinator()
     threads = tf.train.start_queue_runners(sess=sess, coord=coord)
-
+    print(epoch_start)
     for epoch in range(epoch_start, EPOCH):
         for step in range(step_start, DATA_SUM//BATCH_SIZE):
             time1 = time.time()

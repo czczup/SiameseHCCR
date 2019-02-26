@@ -71,10 +71,9 @@ class Siamese(object):
                                 with tf.device("/cpu:0"):
                                     tf.summary.scalar('matching-accuracy', self.accuracy)
                                     self.merged = tf.summary.merge_all()
-                            #
+
                             with tf.name_scope('test-network'):
                                 self.test_network()
-
         grads = average_gradients(tower_grads)
         self.train_op = self.optimizer.apply_gradients(grads, global_step=self.global_step)
 
@@ -118,33 +117,24 @@ class Siamese(object):
             res = self.residual(res, [channel*2, channel, channel, channel*4], 3, 2, with_shortcut=True)
             res = self.residual(res, [channel*4, channel, channel, channel*4], 3, 1)
             res = self.residual(res, [channel*4, channel, channel, channel*4], 3, 1)
-            print(res)
         with tf.variable_scope("block3") as scope:
             res = self.residual(res, [channel*4, channel*2, channel*2, channel*8], 3, 2, with_shortcut=True)
             res = self.residual(res, [channel*8, channel*2, channel*2, channel*8], 3, 1)
             res = self.residual(res, [channel*8, channel*2, channel*2, channel*8], 3, 1)
-            print(res)
         with tf.variable_scope("block4") as scope:
             res = self.residual(res, [channel*8, channel*4, channel*4, channel*16], 3, 2, with_shortcut=True)
             res = self.residual(res, [channel*16, channel*4, channel*4, channel*16], 3, 1)
             res = self.residual(res, [channel*16, channel*4, channel*4, channel*16], 3, 1)
-            print(res)
             pool = tf.nn.avg_pool(res, [1, 2, 2, 1], strides=[1, 1, 1, 1], padding='VALID')
             flatten = tf.layers.flatten(pool)  # 2*2*1024=4096
-            print(flatten)
         with tf.variable_scope("fc1") as scope:
-            # hidden_Weights1 = tf.Variable(tf.truncated_normal([channel*16, 256], stddev=0.1))  # 45-7040 40-5632
-            # hidden_biases1 = tf.Variable(tf.constant(0.1, shape=[256]))
             dense = tf.layers.dense(flatten, units=256, activation=None)
-            print(dense)
-            # net = tf.add(tf.matmul(flatten, hidden_Weights1), hidden_biases1)
         return dense
 
     def contrastive_loss(self, model1, model2, y):
         with tf.variable_scope("output", reuse=tf.AUTO_REUSE):
             output_difference = tf.abs(model1 - model2)
             dense = tf.layers.dense(output_difference, units=1, activation=None)
-            print(dense)
             y_ = tf.nn.sigmoid(dense, name='distance')
         with tf.name_scope("loss"):
             losses = tf.nn.sigmoid_cross_entropy_with_logits(logits=dense, labels=y)
@@ -166,7 +156,6 @@ class Siamese(object):
         output_difference = tf.abs(image_feature-self.template_feature)
         var_list = tf.global_variables()
         for var in var_list:
-            print(var.name)
             if "Siamese/output/dense/kernel:0" == var.name:
                 x = var
             if "Siamese/output/dense/bias:0" == var.name:

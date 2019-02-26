@@ -17,23 +17,23 @@ def init_model(trainId):
             sess.run(tf.global_variables_initializer())
             var_list = [var for var in tf.global_variables() if "moving" in var.name]
             var_list += [var for var in tf.global_variables() if "global_step" in var.name]
-            var_list += tf.trainable_variables()[:-1]
+            var_list += tf.trainable_variables()
             saver = tf.train.Saver(var_list=var_list, max_to_keep=20)
             last_file = tf.train.latest_checkpoint("file/"+trainId+"/models/")
             if last_file:
                 print('Restoring model from {}'.format(last_file))
                 saver.restore(sess, last_file)
-            # 暂时这样
-            var_list = [var for var in tf.global_variables() if "moving" in var.name]
-            var_list += [var for var in tf.global_variables() if "global_step" in var.name]
-            var_list += tf.trainable_variables()
-            saver = tf.train.Saver(var_list=var_list, max_to_keep=20)
+
             writer = tf.summary.FileWriter("file/"+trainId+"/logs/train", sess.graph)
     return sess, saver, siamese, writer
 
 
 def main(trainId, debug):
     train_time = 0
+    for i in range(100):
+        if not os.path.exists("file/" + trainId + "/tfrecord/train%d.tfrecord"%i):
+            train_time = i - 1
+            break
     sample_sum = 500000 if not debug else 10000
     if not os.path.exists("file/"+trainId):
         os.mkdir("file/"+trainId)
@@ -57,4 +57,4 @@ if __name__ == '__main__':
     # deviceId = input("please input device id (0-3): ")
     # os.environ["CUDA_VISIBLE_DEVICES"] = deviceId
     trainId = input("please input train id: ")
-    main(trainId=trainId, debug=True)
+    main(trainId=trainId, debug=False)

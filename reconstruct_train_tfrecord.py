@@ -22,17 +22,17 @@ counts = [item[1] for item in value2]
 char2count = dict(zip(chars, counts))
 
 
-def load_result(filename):
-    table = pd.read_csv("file/results/train/"+filename, header=None)
+def load_result(filename, trainId):
+    table = pd.read_csv("file/"+trainId+"/results/train/"+filename, header=None)
     error_top10 = []
     for item in table.values[:-1]:
         error_top10.append([item[0], item[1]])
     return error_top10
 
 
-def get_data(sample_sum, train_time):
+def get_data(sample_sum, train_time, trainId):
     data = []
-    error_top10 = load_result("result%d.csv"%train_time)
+    error_top10 = load_result("result%d.csv"%train_time, trainId)
     for i in range(sample_sum):
         item = get_positive_pair()
         data.append(item)
@@ -110,7 +110,7 @@ def _convert_dataset(data, tfrecord_path, filename):
     sys.stdout.flush()
 
 def reconstruct_train_tfrecord(train_time, sample_sum, trainId):
-    data = get_data(sample_sum=sample_sum, train_time=train_time)
+    data = get_data(sample_sum=sample_sum, train_time=train_time, trainId=trainId)
     random.seed(0)
     random.shuffle(data)
     if not os.path.exists("file/"+trainId+"/tfrecord/"):
