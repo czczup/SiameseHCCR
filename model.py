@@ -60,7 +60,7 @@ class Siamese(object):
             return residual
 
     def model(self, x):
-        channel = 8
+        channel = 32
         with tf.variable_scope("conv1") as scope:
             conv1 = self.conv2d(x, channel, 7, 1)
             bn = tf.layers.batch_normalization(conv1, training=self.training)
