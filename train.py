@@ -34,7 +34,7 @@ def load_training_set(train_time, trainId):
     with tf.name_scope('input_train'):
         image_train1, image_train2, label_train = read_and_decode_train("file/"+trainId+"/tfrecord/train%d.tfrecord"%train_time)
         image_batch_train1, image_batch_train2, label_batch_train = tf.train.shuffle_batch(
-            [image_train1, image_train2, label_train], batch_size=512, capacity=20480, min_after_dequeue=10240
+            [image_train1, image_train2, label_train], batch_size=512, capacity=102400, min_after_dequeue=100000, num_threads=64
         )
     return image_batch_train1, image_batch_train2, label_batch_train
 
