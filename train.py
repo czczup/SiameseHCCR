@@ -59,7 +59,7 @@ def train(sess, saver, siamese, writer, train_time, debug=False, trainId=None):
         step_ = step_ - train_time * EPOCH * (DATA_SUM // BATCH_SIZE)
 
     epoch_start = step_ // (DATA_SUM // BATCH_SIZE)
-    step_start = step_ % DATA_SUM // BATCH_SIZE
+    step_start = step_ % (DATA_SUM // BATCH_SIZE)
 
     image_batch_train1, image_batch_train2, label_batch_train = load_training_set(train_time, trainId)
     coord = tf.train.Coordinator()
@@ -92,6 +92,8 @@ def train(sess, saver, siamese, writer, train_time, debug=False, trainId=None):
             if step_ % 500 == 0:
                 print("Save the model Successfully")
                 saver.save(sess, "file/"+trainId+"/models/model.ckpt", global_step=step_)
+        else:
+            step_start = 0
     else:
         print("Save the model Successfully")
         saver.save(sess, "file/"+trainId+"/models/model.ckpt", global_step=step_)
