@@ -7,6 +7,7 @@ import heapq
 import time
 import os
 import pandas as pd
+import random
 
 
 class Character:
@@ -43,8 +44,9 @@ def test(siamese, sess, dataset, train_time, debug=False, trainId=None):
             image = image.reshape([32, 32, 1]) / 255.0
             files.append(image)
             if debug: break
-            if dataset == "train" and count == 100: break
-
+            # if dataset == "train" and count == 100: break
+        if dataset == 'train': # 训练集随机选择100个用于测试
+            files = random.sample(files, 200)
         # 提取图像特征
         features = sess.run(siamese.left_output, feed_dict={siamese.left: files, siamese.training: False})
 

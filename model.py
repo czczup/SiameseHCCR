@@ -102,6 +102,7 @@ class Siamese(object):
             y_ = tf.nn.sigmoid(wx_plus_b, name='distance')
         with tf.name_scope("loss"):
             losses = tf.nn.sigmoid_cross_entropy_with_logits(logits=wx_plus_b, labels=y)
+            # losses = tf.contrib.losses.metric_learning.contrastive_loss()
             loss = tf.reduce_mean(losses)
         return y_, loss, [W, b]
 
