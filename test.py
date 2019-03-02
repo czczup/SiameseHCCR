@@ -38,15 +38,19 @@ def test(siamese, sess, dataset, train_time, debug=False, trainId=None):
     top1, top5, top10, size = 0, 0, 0, 0
     for index, dir in enumerate(os.listdir(path)):
         # 载入图像
-        files = []
+        filenames = []
         for count, file in enumerate(os.listdir(path+"/"+dir)):  # 加载文件夹中的所有图像
-            image = cv2.imread(path+"/"+dir+"/"+file, cv2.IMREAD_GRAYSCALE)
+            filenames.append(path+"/"+dir+"/"+file)
+        if dataset=='train':  # 训练集随机选择200个用于测试
+            filenames = random.sample(filenames, 200)
+            
+        files = []
+        for filename in filenames:
+            image = cv2.imread(filename, cv2.IMREAD_GRAYSCALE)
             image = image.reshape([32, 32, 1]) / 255.0
             files.append(image)
             if debug: break
-            # if dataset == "train" and count == 100: break
-        if dataset == 'train': # 训练集随机选择100个用于测试
-            files = random.sample(files, 200)
+
         # 提取图像特征
         features = sess.run(siamese.left_output, feed_dict={siamese.left: files, siamese.training: False})
 
