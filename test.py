@@ -69,7 +69,7 @@ def test(siamese, sess, dataset, train_time, debug=False, trainId=None):
         # 统计正确率
         count_top1, count_top5, count_top10 = 0, 0, 0
         length = len(pred_characters)
-        count_dic = {}
+        ch_list = []
         for item in pred_characters:
             if dir==item[0]:  # 统计top1正确率
                 count_top1 += 1
@@ -81,18 +81,10 @@ def test(siamese, sess, dataset, train_time, debug=False, trainId=None):
                 count_top10 += 1
                 top10 += 1
             size += 1
-            temp = list(item)
-            if dir in temp:  # 输出top10错误汉字列表
-                temp.remove(dir)
-            for ch in temp[0:10]:  # 统计汉字的出错次数
-                if ch in count_dic:
-                    count_dic[ch] += 1
-                else:
-                    count_dic[ch] = 1
+            if dir in item:  # 输出top10错误汉字列表
+                item.remove(dir)
+            ch_list.append(item[:10])
         else:
-            ch_list = sorted(count_dic, key=lambda x:-count_dic[x])[:10]  # 找出出错次数最多的10个汉字
-            if index == 0:
-                print(count_dic)
             f.write(dir+","+"".join(ch_list))
             f.write(","+str(count_top1/length))
             f.write(","+str(count_top5/length))
