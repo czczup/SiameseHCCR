@@ -83,7 +83,7 @@ def test(siamese, sess, dataset, train_time, debug=False, trainId=None):
             size += 1
             if dir in item:  # 输出top10错误汉字列表
                 item.remove(dir)
-            ch_list.append(item[:10])
+            ch_list.extend(item[:10])
         else:
             f.write(dir+","+"".join(ch_list))
             f.write(","+str(count_top1/length))

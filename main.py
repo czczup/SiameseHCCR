@@ -31,10 +31,10 @@ def init_model(trainId):
 def main(trainId, debug):
     train_time = 0
     sample_sum = 500000 if not debug else 10000
-    # for i in range(100):
-    #     if not os.path.exists("file/"+trainId+"/tfrecord/train%d.tfrecord"%i):
-    #         train_time = i - 1
-    #         break
+    for i in range(100):
+        if not os.path.exists("file/"+trainId+"/tfrecord/train%d.tfrecord"%i):
+            train_time = i - 1
+            break
     if not os.path.exists("file/"+trainId):
         os.mkdir("file/"+trainId)
     if not os.path.exists("file/"+trainId+"/tfrecord/train0.tfrecord"):
