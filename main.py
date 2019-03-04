@@ -40,6 +40,7 @@ def main(trainId, debug):
     if not os.path.exists("file/"+trainId+"/tfrecord/train0.tfrecord"):
         generate_train_tfrecord(train_time, sample_sum=sample_sum, trainId=trainId)  # 生成第0个tfrecord
     while True:  # 无限循环
+        print(train_time)
         sess, saver, siamese, writer = init_model(trainId=trainId)  # 每轮训练完成后，重新初始化计算图
         if not os.path.exists("file/"+trainId+"/results/log/train%d.log"%train_time):
             train(sess, saver, siamese, writer, train_time, debug=debug, trainId=trainId)  # 训练一定批次

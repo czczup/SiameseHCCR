@@ -53,9 +53,11 @@ def train(sess, saver, siamese, writer, train_time, debug=False, trainId=None):
     BATCH_SIZE = 512
     DATA_SUM = 1000000 if not debug else 10000
     EPOCH = 30 if not debug else 1
+    # EPOCH = 15 if not debug else 1
 
     step_ = sess.run(siamese.global_step)
     if train_time > 0:
+        # step_ = step_ - 14 * 30 * (DATA_SUM // BATCH_SIZE)- (train_time-14) * EPOCH * (DATA_SUM // BATCH_SIZE)
         step_ = step_ - train_time * EPOCH * (DATA_SUM // BATCH_SIZE)
 
     epoch_start = step_ // (DATA_SUM // BATCH_SIZE)

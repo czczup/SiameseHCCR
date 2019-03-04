@@ -63,7 +63,8 @@ def get_positive_pair():  # 获取正样本对
 
 def get_negative_pair(error_top10):  # 获取负样本对
     rand1 = np.random.randint(0, 3755)  # 随机产生汉字的编号
-    rand2 = np.random.randint(0, len(error_top10[rand1][1])) # 错误样本加权采样
+    # rand2 = np.random.randint(0, len(error_top10[rand1][1])) # 错误样本加权采样
+    rand2 = np.random.randint(0, 10)
     char1 = error_top10[rand1][0]
     char2 = error_top10[rand1][1][rand2]
     index1 = np.random.randint(0, char2count[char1])  # 随机产生汉字的编号
