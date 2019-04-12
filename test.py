@@ -1,5 +1,5 @@
 import tensorflow as tf
-from model import Siamese
+from model import TripletNet
 import numpy as np
 import cv2
 import sys
@@ -16,15 +16,16 @@ class Character:
         self.feature = feature
 
 
-def test(siamese, sess, dataset, train_time, debug=False, trainId=None):
-    path = "database/" + dataset
+def test(tripletNet, sess, dataset, train_time, debug=False, trainId=None):
+
     template_list = []
-    for i, dir in enumerate(os.listdir(path)):
-        image = cv2.imread("database/train/"+dir+"/0.png", cv2.IMREAD_GRAYSCALE)
-        image = image.reshape([32, 32, 1]) / 255.0
-        feature = sess.run(siamese.left_output, feed_dict={siamese.left: [image], siamese.training: False})[0]
-        template = Character(dir, feature)
-        template_list.append(template)
+    for i, file in enumerate(os.listdir("database/anchor/")):
+        if file.endswith("png"):
+            image = cv2.imread("database/anchor/"+file, cv2.IMREAD_GRAYSCALE)
+            image = image.reshape([64, 64, 1]) / 255.0
+            feature = sess.run(tripletNet.positive_output, feed_dict={tripletNet.positive: [image], tripletNet.training: False})[0]
+            template = Character(file[0], feature)
+            template_list.append(template)
     template_feature_list = [template.feature for template in template_list]
     print("字符模板加载完成")
     print("字符模板总数为%d"%len(template_list))
@@ -35,6 +36,7 @@ def test(siamese, sess, dataset, train_time, debug=False, trainId=None):
     f = open("file/"+trainId+"/results/"+dataset+"/result%d.csv"%train_time, "w+", encoding='utf-8')
     range_len = range(len(template_list))
 
+    path = "database/"+dataset
     top1, top5, top10, size = 0, 0, 0, 0
     for index, dir in enumerate(os.listdir(path)):
         # 载入图像
@@ -47,19 +49,19 @@ def test(siamese, sess, dataset, train_time, debug=False, trainId=None):
         files = []
         for filename in filenames:
             image = cv2.imread(filename, cv2.IMREAD_GRAYSCALE)
-            image = image.reshape([32, 32, 1]) / 255.0
+            image = image.reshape([64, 64, 1]) / 255.0
             files.append(image)
             if debug: break
 
         # 提取图像特征
-        features = sess.run(siamese.left_output, feed_dict={siamese.left: files, siamese.training: False})
+        features = sess.run(tripletNet.positive_output, feed_dict={tripletNet.positive: files, tripletNet.training: False})
 
         # 相似度网络计算样本对相似度
         predictions = []
         for feature in features:
-            prediction = sess.run(siamese.test_y_hat, feed_dict={siamese.image_feature: [feature],
-                                                                    siamese.template_feature: template_feature_list,
-                                                                    siamese.training: False})
+            prediction = sess.run(tripletNet.test_y_hat, feed_dict={tripletNet.image_feature: [feature],
+                                                                    tripletNet.template_feature: template_feature_list,
+                                                                    tripletNet.training: False})
             predictions.append(prediction)
 
 
@@ -117,7 +119,7 @@ if __name__ == '__main__':
     sess = tf.Session(config=tf_config)
     with sess.graph.as_default():
         with sess.as_default():
-            siamese = Siamese()
+            tripletNet = TripletNet()
             sess.run(tf.local_variables_initializer())
             sess.run(tf.global_variables_initializer())
             var_list = [var for var in tf.global_variables() if "moving" in var.name]
@@ -127,5 +129,5 @@ if __name__ == '__main__':
             last_file = tf.train.latest_checkpoint("file/models/")
             print('Restoring model from {}'.format(last_file))
             saver.restore(sess, last_file)
-    test(siamese, sess, dataset="test")
+    test(tripletNet, sess, dataset="test")
 

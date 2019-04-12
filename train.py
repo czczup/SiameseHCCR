@@ -1,4 +1,4 @@
-from model import Siamese
+from model import TripletNet
 import tensorflow as tf
 import time
 import os
@@ -13,30 +13,33 @@ def read_and_decode_train(filename):
     _, serialized_example = reader.read(filename_queue)  # return file_name and file
     features = tf.parse_single_example(serialized_example,
                                        features={
-                                           'image1': tf.FixedLenFeature([], tf.string),
-                                           'image2': tf.FixedLenFeature([], tf.string),
-                                           'label': tf.FixedLenFeature([], tf.int64),
+                                           'positive': tf.FixedLenFeature([], tf.string),
+                                           'anchor': tf.FixedLenFeature([], tf.string),
+                                           'negative': tf.FixedLenFeature([], tf.string),
                                        })  # return image and label
-    image1 = tf.decode_raw(features['image1'], tf.uint8)
-    image1 = tf.reshape(image1, [32, 32, 1])
-    image1 = tf.cast(image1, tf.float32) / 255.0
+    positive = tf.decode_raw(features['positive'], tf.uint8)
+    positive = tf.reshape(positive, [64, 64, 1])
+    positive = tf.cast(positive, tf.float32) / 255.0
 
-    image2 = tf.decode_raw(features['image2'], tf.uint8)
-    image2 = tf.reshape(image2, [32, 32, 1])
-    image2 = tf.cast(image2, tf.float32) / 255.0
+    anchor = tf.decode_raw(features['anchor'], tf.uint8)
+    anchor = tf.reshape(anchor, [64, 64, 1])
+    anchor = tf.cast(anchor, tf.float32)/255.0
 
-    label = tf.cast(features['label'], tf.int64)  # throw label tensor
-    label = tf.reshape(label, [1])
-    return image1, image2, label
+    negative = tf.decode_raw(features['negative'], tf.uint8)
+    negative = tf.reshape(negative, [64, 64, 1])
+    negative = tf.cast(negative, tf.float32) / 255.0
+
+    return positive, anchor, negative
 
 
 def load_training_set(train_time, trainId):
     with tf.name_scope('input_train'):
-        image_train1, image_train2, label_train = read_and_decode_train("file/"+trainId+"/tfrecord/train%d.tfrecord"%train_time)
-        image_batch_train1, image_batch_train2, label_batch_train = tf.train.shuffle_batch(
-            [image_train1, image_train2, label_train], batch_size=512, capacity=102400, min_after_dequeue=100000, num_threads=64
+        positive, anchor, negative = read_and_decode_train("file/"+trainId+"/tfrecord/train%d.tfrecord"%train_time)
+        positive_batch, anchor_batch, negative_batch = tf.train.shuffle_batch(
+            [positive, anchor, negative], batch_size=256,
+            capacity=25600, min_after_dequeue=20000, num_threads=4
         )
-    return image_batch_train1, image_batch_train2, label_batch_train
+    return positive_batch, anchor_batch, negative_batch
 
 
 def read_mapping():
@@ -49,43 +52,40 @@ def read_mapping():
     return id2char, char2id
 
 
-def train(sess, saver, siamese, writer, train_time, debug=False, trainId=None):
-    BATCH_SIZE = 512
-    DATA_SUM = 1000000 if not debug else 10000
-    EPOCH = 30 if not debug else 1
-    # EPOCH = 15 if not debug else 1
+def train(sess, saver, tripletNet, writer, train_time, debug=False, trainId=None):
+    BATCH_SIZE = tripletNet.batch_size
+    DATA_SUM = 300000 if not debug else 10000
+    EPOCH = 15 if not debug else 1
 
-    step_ = sess.run(siamese.global_step)
+    step_ = sess.run(tripletNet.global_step)
     if train_time > 0:
-        # step_ = step_ - 14 * 30 * (DATA_SUM // BATCH_SIZE)- (train_time-14) * EPOCH * (DATA_SUM // BATCH_SIZE)
         step_ = step_ - train_time * EPOCH * (DATA_SUM // BATCH_SIZE)
 
     epoch_start = step_ // (DATA_SUM // BATCH_SIZE)
     step_start = step_ % (DATA_SUM // BATCH_SIZE)
 
-    image_batch_train1, image_batch_train2, label_batch_train = load_training_set(train_time, trainId)
+    positive_batch_, anchor_batch_, negative_batch_ = load_training_set(train_time, trainId)
     coord = tf.train.Coordinator()
     threads = tf.train.start_queue_runners(sess=sess, coord=coord)
-    print(epoch_start)
+    # print(epoch_start)
     for epoch in range(epoch_start, EPOCH):
         for step in range(step_start, DATA_SUM//BATCH_SIZE):
             time1 = time.time()
-            image_train1, image_train2, label_train, step_ = sess.run(
-                [image_batch_train1, image_batch_train2, label_batch_train, siamese.global_step])
-            _, loss_ = sess.run([siamese.optimizer, siamese.loss], feed_dict={siamese.left: image_train1,
-                                                                                 siamese.right: image_train2,
-                                                                                 siamese.label: label_train,
-                                                                                 siamese.training: True})
+            positive_batch, anchor_batch, negative_batch, step_ = sess.run(
+                [positive_batch_, anchor_batch_, negative_batch_, tripletNet.global_step])
+            _, loss_ = sess.run([tripletNet.optimizer, tripletNet.loss], feed_dict={tripletNet.positive: positive_batch,
+                                                                                 tripletNet.anchor: anchor_batch,
+                                                                                 tripletNet.negative: negative_batch,
+                                                                                 tripletNet.training: True})
             print('[train %d, epoch %d, step %d/%d]: loss %.6f' % (train_time, epoch, step,
                                                                    int(DATA_SUM)//BATCH_SIZE, loss_),
                   'time %.3fs' % (time.time() - time1))
             if step_ % 10 == 0:
-                image_train1, image_train2, label_train = sess.run(
-                    [image_batch_train1, image_batch_train2, label_batch_train])
-                acc_train, summary = sess.run([siamese.accuracy, siamese.merged], feed_dict={siamese.left: image_train1,
-                                                                                                 siamese.right: image_train2,
-                                                                                                 siamese.label: label_train,
-                                                                                                 siamese.training: True})
+                positive_batch, anchor_batch, negative_batch = sess.run(
+                    [positive_batch_, anchor_batch_, negative_batch_])
+                acc_train, summary = sess.run([tripletNet.accuracy, tripletNet.merged], feed_dict={
+                    tripletNet.positive: positive_batch, tripletNet.anchor: anchor_batch,
+                    tripletNet.negative: negative_batch, tripletNet.training: True})
                 writer.add_summary(summary, step_)
                 print('[train %d, epoch %d, step %d/%d]: train acc %.3f' % (train_time, epoch, step,
                                                                             int(DATA_SUM)//BATCH_SIZE, acc_train),

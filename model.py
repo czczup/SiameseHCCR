@@ -21,7 +21,7 @@ class TripletNet(object):
 
         self.prediction, self.loss, self.test_param = self.my_loss()
         tf.summary.scalar('loss', self.loss)
-        self.batch_size = 512
+        self.batch_size = 256
         self.ones = tf.ones([self.batch_size, 1])
         self.zeros = tf.zeros([self.batch_size, 1])
         with tf.name_scope('correct_prediction'):
@@ -86,7 +86,7 @@ class TripletNet(object):
             res = self.residual(res, [channel*8, channel*4, channel*4, channel*16], 3, 2, with_shortcut=True)
             res = self.residual(res, [channel*16, channel*4, channel*4, channel*16], 3, 1)
             print(res)
-            pool = tf.nn.avg_pool(res, [1, 2, 2, 1], strides=[1, 1, 1, 1], padding='VALID')
+            pool = tf.nn.avg_pool(res, [1, 2, 2, 1], strides=[1, 2, 2, 1], padding='VALID')
             flatten = tf.layers.flatten(pool)  # 2*2*1024=4096
             print(flatten)
         with tf.variable_scope("fc1") as scope:
@@ -107,7 +107,8 @@ class TripletNet(object):
 
         with tf.name_scope("loss"):
             # log趋向于0，y_hat1趋向于1，y_hat2趋向于0
-            losses = -(tf.log(y_hat1) + tf.log(1-y_hat2))
+            losses = -(tf.log(y_hat1+1E-9) + tf.log(1-y_hat2+1E-9))
+            # losses = tf.nn.l2_loss(y_hat1-1) + tf.nn.l2_loss(y_hat2)
             loss = tf.reduce_mean(losses)
         return [y_hat1, y_hat2], loss, [W, b]
 

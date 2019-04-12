@@ -34,9 +34,7 @@ def get_data(sample_sum, train_time, trainId):
     data = []
     error_top10 = load_result("result%d.csv"%train_time, trainId)
     for i in range(sample_sum):
-        item = get_positive_pair()
-        data.append(item)
-        item = get_negative_pair(error_top10)
+        item = get_triplet(error_top10)
         data.append(item)
         sys.stdout.write('\r>> Loading sample pairs %d/%d' % (i + 1, sample_sum))
         sys.stdout.flush()
@@ -51,46 +49,32 @@ def get_different_randint(start, end):  # 左闭右开
     return num1, num2
 
 
-def get_positive_pair():  # 获取正样本对
-    id = np.random.randint(0, 3755)  # 随机产生汉字的编号
-    index1, index2 = get_different_randint(0, char2count[id2char[id]])
-    path1 = "database/train/" + id2char[id] + "/" + str(index1) + ".png"
-    image1 = cv2.imread(path1, cv2.IMREAD_GRAYSCALE)
-    path2 = "database/train/" + id2char[id] + "/" + str(index2) + ".png"
-    image2 = cv2.imread(path2, cv2.IMREAD_GRAYSCALE)
-    return image1, image2, 1
-
-
-def get_negative_pair(error_top10):  # 获取负样本对
+def get_triplet(error_top10):  # 获取负样本对
     rand1 = np.random.randint(0, 3755)  # 随机产生汉字的编号
-    # rand2 = np.random.randint(0, len(error_top10[rand1][1])) # 错误样本加权采样
     rand2 = np.random.randint(0, 10)
     char1 = error_top10[rand1][0]
     char2 = error_top10[rand1][1][rand2]
     index1 = np.random.randint(0, char2count[char1])  # 随机产生汉字的编号
     index2 = np.random.randint(0, char2count[char2])  # 随机产生汉字的编号
-    path1 = "database/train/" + char1 + "/" + str(index1) + ".png"
-    image1 = cv2.imread(path1, cv2.IMREAD_GRAYSCALE)
-    path2 = "database/train/" + char2 + "/" + str(index2) + ".png"
-    image2 = cv2.imread(path2, cv2.IMREAD_GRAYSCALE)
-    return image1, image2, 0
+    positive_path = "database/train/" + char1 + "/" + str(index1) + ".png"
+    positive = cv2.imread(positive_path, cv2.IMREAD_GRAYSCALE)
+    negative_path = "database/train/" + char2 + "/" + str(index2) + ".png"
+    negative = cv2.imread(negative_path, cv2.IMREAD_GRAYSCALE)
+    anchor_path = "database/anchor/" + char1 + ".png"
+    anchor = cv2.imread(anchor_path, cv2.IMREAD_GRAYSCALE)
 
-
-def int64_feature(values):
-    if not isinstance(values, (tuple, list)):
-        values = [values]
-    return tf.train.Feature(int64_list=tf.train.Int64List(value=values))
+    return positive, anchor, negative
 
 
 def bytes_feature(values):
     return tf.train.Feature(bytes_list=tf.train.BytesList(value=[values]))
 
 
-def image_to_tfexample(image_data1, image_data2, class_id):
+def image_to_tfexample(positive, anchor, negative):
     return tf.train.Example(features=tf.train.Features(feature={
-        'image1': bytes_feature(image_data1),
-        'image2': bytes_feature(image_data2),
-        'label': int64_feature(class_id),
+        'positive': bytes_feature(positive),
+        'anchor': bytes_feature(anchor),
+        'negative': bytes_feature(negative),
     }))
 
 
@@ -100,10 +84,10 @@ def _convert_dataset(data, tfrecord_path, filename):
     tfrecord_writer = tf.python_io.TFRecordWriter(output_filename)
     length = len(data)
     for index, item in enumerate(data):
-        image1 = item[0].tobytes()
-        image2 = item[1].tobytes()
-        label = item[2]
-        example = image_to_tfexample(image1, image2, label)
+        positive = item[0].tobytes()
+        anchor = item[1].tobytes()
+        negative = item[2].tobytes()
+        example = image_to_tfexample(positive, anchor, negative)
         tfrecord_writer.write(example.SerializeToString())
         sys.stdout.write('\r>> Converting image %d/%d' % (index + 1, length))
         sys.stdout.flush()
