@@ -25,11 +25,9 @@ char2count = dict(zip(chars, counts))
 def get_data(sample_sum):
     data = []
     for i in range(sample_sum):
-        item = get_positive_pair()
+        item = get_triplet()
         data.append(item)
-        item = get_negative_pair()
-        data.append(item)
-        sys.stdout.write('\r>> Loading sample pairs %d/%d' % (i + 1, sample_sum))
+        sys.stdout.write('\r>> Loading triplets %d/%d' % (i + 1, sample_sum))
         sys.stdout.flush()
     return data
 
@@ -42,25 +40,19 @@ def get_different_randint(start, end):  # 左闭右开
     return num1, num2
 
 
-def get_positive_pair():  # 获取正样本对
-    id = np.random.randint(0, 3755)  # 随机产生汉字的编号
-    index1, index2 = get_different_randint(0, char2count[id2char[id]])
-    path1 = "database/train/" + id2char[id] + "/" + str(index1) + ".png"
-    image1 = cv2.imread(path1, cv2.IMREAD_GRAYSCALE)
-    path2 = "database/train/" + id2char[id] + "/" + str(index2) + ".png"
-    image2 = cv2.imread(path2, cv2.IMREAD_GRAYSCALE)
-    return image1, image2, 1
-
-
-def get_negative_pair():  # 获取负样本对
+def get_triplet():  # 获取正样本对
     id1, id2 = get_different_randint(0, 3755)  # 随机产生汉字的编号
+    path_anchor = "database/anchor/" + str(id1) + ".png"
+    anchor = cv2.imread(path_anchor, cv2.IMREAD_GRAYSCALE)
+
     index1 = np.random.randint(0, char2count[id2char[id1]])  # 随机产生汉字的编号
+    path_positive = "database/train/" + id2char[id1] + "/" + str(index1) + ".png"
+    positive = cv2.imread(path_positive, cv2.IMREAD_GRAYSCALE)
+
     index2 = np.random.randint(0, char2count[id2char[id2]])  # 随机产生汉字的编号
-    path1 = "database/train/" + id2char[id1] + "/" + str(index1) + ".png"
-    image1 = cv2.imread(path1, cv2.IMREAD_GRAYSCALE)
-    path2 = "database/train/" + id2char[id2] + "/" + str(index2) + ".png"
-    image2 = cv2.imread(path2, cv2.IMREAD_GRAYSCALE)
-    return image1, image2, 0
+    path_negative = "database/train/" + id2char[id2] + "/" + str(index2) + ".png"
+    negative = cv2.imread(path_negative, cv2.IMREAD_GRAYSCALE)
+    return positive, anchor, negative
 
 
 def int64_feature(values):
@@ -73,11 +65,11 @@ def bytes_feature(values):
     return tf.train.Feature(bytes_list=tf.train.BytesList(value=[values]))
 
 
-def image_to_tfexample(image_data1, image_data2, class_id):
+def image_to_tfexample(positive, anchor, negative):
     return tf.train.Example(features=tf.train.Features(feature={
-        'image1': bytes_feature(image_data1),
-        'image2': bytes_feature(image_data2),
-        'label': int64_feature(class_id),
+        'positive': bytes_feature(positive),
+        'anchor': bytes_feature(anchor),
+        'negative': int64_feature(negative),
     }))
 
 
@@ -87,10 +79,11 @@ def _convert_dataset(data, tfrecord_path, filename):
     tfrecord_writer = tf.python_io.TFRecordWriter(output_filename)
     length = len(data)
     for index, item in enumerate(data):
-        image1 = item[0].tobytes()
-        image2 = item[1].tobytes()
-        label = item[2]
-        example = image_to_tfexample(image1, image2, label)
+        positive = item[0].tobytes()
+        anchor = item[1].tobytes()
+        negative = item[2].tobytes()
+
+        example = image_to_tfexample(positive, anchor, negative)
         tfrecord_writer.write(example.SerializeToString())
         sys.stdout.write('\r>> Converting image %d/%d' % (index + 1, length))
         sys.stdout.flush()

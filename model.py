@@ -3,30 +3,34 @@ from functools import reduce
 from operator import mul
 
 
-class Siamese(object):
+class TripletNet(object):
     def __init__(self):
         with tf.name_scope("input"):
-            self.left = tf.placeholder(tf.float32, [None, 32, 32, 1], name='left')
-            self.right = tf.placeholder(tf.float32, [None, 32, 32, 1], name='right')
-            label = tf.placeholder(tf.int32, [None, 1], name='label')  # 1 if same, 0 if different
-            self.label = tf.to_float(label)
+            self.positive = tf.placeholder(tf.float32, [None, 64, 64, 1], name='positive')
+            self.anchor = tf.placeholder(tf.float32, [None, 64, 64, 1], name='anchor')
+            self.negative = tf.placeholder(tf.float32, [None, 64, 64, 1], name='negative')
+
         self.training = tf.placeholder(tf.bool)
         self.global_step = tf.Variable(0, name="global_step", trainable=False)
-        with tf.variable_scope("Siamese") as scope:
-            self.left_output = self.model(self.left)
+        with tf.variable_scope("Triplet") as scope:
+            self.positive_output = self.model(self.positive)
             scope.reuse_variables()
-            self.right_output = self.model(self.right)
-        self.prediction, self.loss, self.test_param = self.contrastive_loss(self.left_output, self.right_output, self.label)
+            self.negative_output = self.model(self.negative)
+            scope.reuse_variables()
+            self.anchor_output = self.model(self.anchor)
+
+        self.prediction, self.loss, self.test_param = self.my_loss()
         tf.summary.scalar('loss', self.loss)
         self.batch_size = 512
-        self.learning_rate = tf.train.exponential_decay(1e-3, self.global_step, decay_steps=1E6//self.batch_size,
-                                                        decay_rate=0.998, staircase=True)
-        tf.summary.scalar('learning_rate', self.learning_rate)
+        self.ones = tf.ones([self.batch_size, 1])
+        self.zeros = tf.zeros([self.batch_size, 1])
         with tf.name_scope('correct_prediction'):
-            correct_prediction = tf.equal(tf.less(self.prediction, 0.5), tf.less(self.label, 0.5))
+            correct_prediction1 = tf.equal(tf.less(self.prediction[0], 0.5), tf.less(self.ones, 0.5))
+            correct_prediction2 = tf.equal(tf.less(self.prediction[1], 0.5), tf.less(self.zeros, 0.5))
+            correct_prediction = tf.concat([correct_prediction1,correct_prediction2], axis=-1)
         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
         with tf.control_dependencies(update_ops):
-            self.optimizer = tf.train.AdamOptimizer(self.learning_rate).minimize(self.loss, global_step=self.global_step)
+            self.optimizer = tf.train.AdamOptimizer(1E-3).minimize(self.loss, global_step=self.global_step)
         with tf.name_scope('accuracy'):
             self.accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
             tf.summary.scalar('matching-accuracy', self.accuracy)
@@ -69,21 +73,17 @@ class Siamese(object):
         with tf.variable_scope("block1") as scope:
             res = self.residual(pool, [channel, channel//2, channel//2, channel*2], 3, 1, with_shortcut=True)
             res = self.residual(res, [channel*2, channel//2, channel//2, channel*2], 3, 1)
-            res = self.residual(res, [channel*2, channel//2, channel//2, channel*2], 3, 1)
             print(res)
         with tf.variable_scope("block2") as scope:
             res = self.residual(res, [channel*2, channel, channel, channel*4], 3, 2, with_shortcut=True)
-            res = self.residual(res, [channel*4, channel, channel, channel*4], 3, 1)
             res = self.residual(res, [channel*4, channel, channel, channel*4], 3, 1)
             print(res)
         with tf.variable_scope("block3") as scope:
             res = self.residual(res, [channel*4, channel*2, channel*2, channel*8], 3, 2, with_shortcut=True)
             res = self.residual(res, [channel*8, channel*2, channel*2, channel*8], 3, 1)
-            res = self.residual(res, [channel*8, channel*2, channel*2, channel*8], 3, 1)
             print(res)
         with tf.variable_scope("block4") as scope:
             res = self.residual(res, [channel*8, channel*4, channel*4, channel*16], 3, 2, with_shortcut=True)
-            res = self.residual(res, [channel*16, channel*4, channel*4, channel*16], 3, 1)
             res = self.residual(res, [channel*16, channel*4, channel*4, channel*16], 3, 1)
             print(res)
             pool = tf.nn.avg_pool(res, [1, 2, 2, 1], strides=[1, 1, 1, 1], padding='VALID')
@@ -93,18 +93,23 @@ class Siamese(object):
             dense = tf.layers.dense(flatten, units=256, activation=None)
         return dense
 
-    def contrastive_loss(self, model1, model2, y):
-        with tf.variable_scope("output", reuse=tf.AUTO_REUSE):
-            output_difference = tf.abs(model1-model2)
-            W = tf.Variable(tf.random_normal([256, 1], stddev=0.1), name='W')
-            b = tf.Variable(tf.zeros([1, 1])+0.1, name='b')
-            wx_plus_b = tf.matmul(output_difference, W)+b
-            y_ = tf.nn.sigmoid(wx_plus_b, name='distance')
+    def my_loss(self):
+        W = tf.Variable(tf.random_normal([256, 1], stddev=0.1), name='W')
+        b = tf.Variable(tf.zeros([1, 1])+0.1, name='b')
+        with tf.variable_scope("positive-anchor"):
+            difference = tf.abs(self.positive_output-self.anchor_output)
+            wx_plus_b = tf.matmul(difference, W)+b
+            y_hat1 = tf.nn.sigmoid(wx_plus_b)
+        with tf.variable_scope("negative-anchor"):
+            difference = tf.abs(self.negative_output-self.anchor_output)
+            wx_plus_b = tf.matmul(difference, W)+b
+            y_hat2 = tf.nn.sigmoid(wx_plus_b)
+
         with tf.name_scope("loss"):
-            losses = tf.nn.sigmoid_cross_entropy_with_logits(logits=wx_plus_b, labels=y)
-            # losses = tf.contrib.losses.metric_learning.contrastive_loss()
+            # log趋向于0，y_hat1趋向于1，y_hat2趋向于0
+            losses = -(tf.log(y_hat1) + tf.log(1-y_hat2))
             loss = tf.reduce_mean(losses)
-        return y_, loss, [W, b]
+        return [y_hat1, y_hat2], loss, [W, b]
 
     def get_num_params(self):
         num_params = 0
@@ -123,8 +128,8 @@ class Siamese(object):
         self.test_y_hat = tf.nn.sigmoid(wx_plus_b, name='distance')
 
 if __name__ == '__main__':
-    model = Siamese()
-    # var_list = tf.global_variables()
-    # for var in var_list:
-    #     if "batch" not in var.name:
-    #         print(var)
+    model = TripletNet()
+    var_list = tf.global_variables()
+    for var in var_list:
+        if "batch" not in var.name and "Adam" not in var.name:
+            print(var)

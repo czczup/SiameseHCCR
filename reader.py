@@ -33,7 +33,7 @@ class Reader:
         while True:
             try:
                 image, label = next(data)
-                image = image.resize((32, 32))
+                image = image.resize((64, 64))
                 image = PIL.ImageOps.invert(image)
                 data_list.append((image, label))
             except StopIteration:
