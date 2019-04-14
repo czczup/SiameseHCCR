@@ -72,19 +72,19 @@ class TripletNet(object):
             pool = tf.nn.max_pool(relu, [1, 3, 3, 1], [1, 2, 2, 1], padding="SAME")
         with tf.variable_scope("block1") as scope:
             res = self.residual(pool, [channel, channel//2, channel//2, channel*2], 3, 1, with_shortcut=True)
-            res = self.residual(res, [channel*2, channel//2, channel//2, channel*2], 3, 1)
+            # res = self.residual(res, [channel*2, channel//2, channel//2, channel*2], 3, 1)
             print(res)
         with tf.variable_scope("block2") as scope:
             res = self.residual(res, [channel*2, channel, channel, channel*4], 3, 2, with_shortcut=True)
-            res = self.residual(res, [channel*4, channel, channel, channel*4], 3, 1)
+            # res = self.residual(res, [channel*4, channel, channel, channel*4], 3, 1)
             print(res)
         with tf.variable_scope("block3") as scope:
             res = self.residual(res, [channel*4, channel*2, channel*2, channel*8], 3, 2, with_shortcut=True)
-            res = self.residual(res, [channel*8, channel*2, channel*2, channel*8], 3, 1)
+            # res = self.residual(res, [channel*8, channel*2, channel*2, channel*8], 3, 1)
             print(res)
         with tf.variable_scope("block4") as scope:
             res = self.residual(res, [channel*8, channel*4, channel*4, channel*16], 3, 2, with_shortcut=True)
-            res = self.residual(res, [channel*16, channel*4, channel*4, channel*16], 3, 1)
+            # res = self.residual(res, [channel*16, channel*4, channel*4, channel*16], 3, 1)
             print(res)
             pool = tf.nn.avg_pool(res, [1, 2, 2, 1], strides=[1, 2, 2, 1], padding='VALID')
             flatten = tf.layers.flatten(pool)  # 2*2*1024=4096

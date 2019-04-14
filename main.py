@@ -45,7 +45,8 @@ def main(trainId, debug):
         if not os.path.exists("file/"+trainId+"/results/test/result%d.csv"%train_time):
             test(tripletNet, sess, dataset="test", train_time=train_time, debug=debug, trainId=trainId)  # 用测试集测试
         if not os.path.exists("file/"+trainId+"/tfrecord/train%d.tfrecord"%(train_time+1)):
-            reconstruct_train_tfrecord(train_time, sample_sum=sample_sum, trainId=trainId)  # 重构训练集
+            # reconstruct_train_tfrecord(train_time, sample_sum=sample_sum, trainId=trainId)  # 重构训练集
+            generate_train_tfrecord(train_time+1, sample_sum=sample_sum, trainId=trainId)
 
         tf.reset_default_graph()  # 清空计算图
         train_time += 1

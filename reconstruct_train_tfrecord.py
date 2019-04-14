@@ -33,10 +33,10 @@ def load_result(filename, trainId):
 def get_data(sample_sum, train_time, trainId):
     data = []
     error_top10 = load_result("result%d.csv"%train_time, trainId)
-    for i in range(sample_sum):
-        item = get_triplet(error_top10)
-        data.append(item)
-        sys.stdout.write('\r>> Loading sample pairs %d/%d' % (i + 1, sample_sum))
+    for i in range(sample_sum//2):
+        data.append(get_triplet(error_top10))
+        data.append(get_simple_triplet())
+        sys.stdout.write('\r>> Loading sample pairs %d/%d' % (i + 1, sample_sum//2))
         sys.stdout.flush()
     return data
 
@@ -65,6 +65,25 @@ def get_triplet(error_top10):  # 获取负样本对
 
     return positive, anchor, negative
 
+
+
+def get_simple_triplet():  # 获取正样本对
+    id1, id2 = get_different_randint(0, 3755)  # 随机产生汉字的编号
+    path_anchor = "database/anchor/" + id2char[id1] + ".png"
+    anchor = cv2.imread(path_anchor, cv2.IMREAD_GRAYSCALE)
+    assert anchor.shape == (64, 64)
+
+    index1 = np.random.randint(0, char2count[id2char[id1]])  # 随机产生汉字的编号
+    path_positive = "database/train/" + id2char[id1] + "/" + str(index1) + ".png"
+    positive = cv2.imread(path_positive, cv2.IMREAD_GRAYSCALE)
+    assert positive.shape==(64, 64)
+
+    index2 = np.random.randint(0, char2count[id2char[id2]])  # 随机产生汉字的编号
+    path_negative = "database/train/" + id2char[id2] + "/" + str(index2) + ".png"
+    negative = cv2.imread(path_negative, cv2.IMREAD_GRAYSCALE)
+    assert negative.shape==(64, 64)
+
+    return positive, anchor, negative
 
 def bytes_feature(values):
     return tf.train.Feature(bytes_list=tf.train.BytesList(value=[values]))
